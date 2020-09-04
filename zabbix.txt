@@ -1,0 +1,104 @@
+搭建zabbix
+
+```bash
+systemctl stop firewalld && systemctl disable firewalld
+```
+
+下载rpm包
+
+```
+yum install zabbix-server-mysql zabbix-agent -y
+yum install centos-release-scl -y 
+```
+
+zabbix源
+
+```bash
+[zabbix-frontend]
+name=Zabbix Official Repository frontend - $basearch
+baseurl=http://repo.zabbix.com/zabbix/5.0/rhel/7/$basearch/frontend
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ZABBIX-A14FE591
+```
+
+安装zabbix前端
+
+```bash
+yum install zabbix-web-mysql-scl zabbix-apache-conf-scl -y 
+```
+
+安装数据库
+
+```bash
+yum -y install mariadb-server mariadb
+systemctl start mariadb && systemctl enable mariadb
+```
+
+创建zabbix数据库
+
+```bash
+mysql_secure_installation					#初始化数据库
+
+mysql -uroot -p
+MariaDB [(none)]> CREATE DATABASE zabbix DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
+MariaDB [(none)]> create database zabbix character set utf8 collate utf8_bin;
+MariaDB [(none)]> create user zabbix@localhost identified by 'password';
+MariaDB [(none)]> grant all privileges on zabbix.* to zabbix@localhost;
+MariaDB [(none)]> flush privileges;
+MariaDB [(none)]> quit;
+```
+
+导入数据
+
+```bash
+cd /usr/share/doc/zabbix-server-mysql-3.0.11/
+
+zcat create.sql.gz | mysql -uroot -p zabbix
+```
+
+替换zabbix数据库密码
+
+```bash
+vim /etc/zabbix/zabbix_server.conf
+
+116 DBUser=zabbix
+117 
+118 ### Option: DBPassword
+119 #       Database password.
+120 #       Comment this line if no password is used.
+121 #
+122 # Mandatory: no
+123 # Default:
+124 DBPassword=idiot520
+```
+
+修改时区
+
+```bash
+vim /etc/opt/rh/rh-php72/php-fpm.d/zabbix.conf
+ 
+ 18 php_value[max_execution_time] = 300
+ 19 php_value[memory_limit] = 128M
+ 20 php_value[post_max_size] = 16M
+ 21 php_value[upload_max_filesize] = 2M
+ 22 php_value[max_input_time] = 300
+ 23 php_value[max_input_vars] = 10000
+ 24 php_value[date.timezone] = Asia/Shanghai
+```
+
+启动Zabbix服务
+
+```bash
+systemctl restart zabbix-server && systemctl enable zabbix-server
+systemctl restart zabbix-agent && systemctl enable zabbix-agent
+systemctl restart httpd && systemctl enable httpd
+systemctl restart rh-php72-php-fpm && systemctl enable rh-php72-php-fpm
+```
+
+配置Zabbix Web前端
+
+```bash
+初始用户名：Admin，初始密码为：zabbix
+```
+
